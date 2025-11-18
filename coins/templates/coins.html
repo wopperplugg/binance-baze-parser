@@ -1,9 +1,48 @@
-<!DOCTYPE html>
-<html>
-<body>
+{% extends "base_generic.html" %}
+{% block title%}
+<title>ранобэ</title>
+{% endblock %}
+{% block content %}
 
-<h1>Hello World!</h1>
-<p>Welcome to my first Django project!</p>
+    <div class="container">
+        <section class="section">
+            <div class="row">
+                <div class="col-md-6 offset-md-3 text-center">
+                    <h2>Добро пожаловать!</h2>
+                    <p>CryptoLive — это удобный инструмент для отслеживания актуальных данных о криптовалютах. Мы собираем информацию о ценах, объемах торгов и изменениях напрямую с платформы Binance.</p>
+                    <a href="/coins/" class="btn btn-primary btn-lg">Посмотреть текущие курсы</a>
+                </div>
+            </div>
+        </section>
 
-</body>
-</html>
+        <section class="section">
+            <h2 class="text-center">Что вы найдете на нашем сайте?</h2>
+            <div class="row mt-4">
+                <div class="col-md-4">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">Актуальные цены монет</h5>
+                            <p class="card-text">Получайте мгновенный доступ к текущим ценам популярных криптовалют.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">Графики и аналитика</h5>
+                            <p class="card-text">Следите за динамикой цен с помощью интерактивных графиков.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">Избранные монеты</h5>
+                            <p class="card-text">Создавайте список своих любимых криптовалют.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+{% endblock %}
