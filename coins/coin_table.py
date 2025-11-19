@@ -1,8 +1,12 @@
+import os
+import django
+
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'binance_parser.settings')
+
 from binance import BinanceSocketManager, AsyncClient
 from django.utils.timezone import now
 from dotenv import load_dotenv
 from .models import Coin
-import os
 import json 
 import asyncio
 from asgiref.sync import sync_to_async

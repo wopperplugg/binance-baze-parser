@@ -1,0 +1,1 @@
+print("✅ Приложение 'coins\management\comands' успешно загружено!")
