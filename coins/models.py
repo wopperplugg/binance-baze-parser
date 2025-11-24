@@ -9,6 +9,7 @@ class Coin(models.Model):
     updated_at = models.DateTimeField(default=now)
     def __str__(self):
         return self.symbol
+    
 class Kline(models.Model):
     symbol = models.CharField(max_length=20)
     timestamp = models.BigIntegerField()

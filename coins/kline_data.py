@@ -8,7 +8,7 @@ from .models import Kline
 import asyncio
 import json
 
-os.environ.setdefaul('DJANGO_SETTINGS_MOSULE', 'binance_parser.settings')
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'binance_parser.settings')
 django.setup()
 
 load_dotenv()
@@ -62,10 +62,17 @@ async def start_websocket():
     client = await AsyncClient.create(api_key, secret_key)
     web_socket = BinanceSocketManager(client)
     try:
-        # Подписка на свечи для вех пар интервал 4 часа
-        channels = ['@kline_4h'] 
-        combined_streams = [f"{channel}" for channel in channels]
+        symbols = ['btcusdt', 'ethusdt']
+        interval = '1m'
+        combined_streams = [f"{channel}@kline_{interval}" for channel in symbols]
         ticker = web_socket.multiplex_socket(combined_streams)
+        
+        async with ticker as stream:
+            while True:
+                res = await stream.recv()
+                if 'stream' in res and 'data' in res:
+                    data = res['data']
+                    await handle_kline_data(data)
     except KeyboardInterrupt:
         print("WebSocket остановлен пользователем")
     except Exception as e:

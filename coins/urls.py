@@ -3,4 +3,5 @@ from . import views
 urlpatterns = [
     path('coins/', views.coins, name='coins'),
     path('coin-table/', views.coin_table, name='coin_table'),
+    path('kline-table/', views.kline_data, name='kline_table'),
 ]
