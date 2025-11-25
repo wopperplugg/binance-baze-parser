@@ -5,3 +5,5 @@ websocket-client
 channels
 dotenv
 asgiref
+plotly
+pandas

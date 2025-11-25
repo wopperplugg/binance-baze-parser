@@ -1,5 +1,9 @@
-from django.shortcuts import render
+from django.shortcuts import render, get_object_or_404
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from .models import Coin, Kline
+import pandas as pd
+import plotly.graph_objects as go
+from plotly.offline import plot
 
 def coins(request):
     return render(request, 'coins.html')
@@ -36,8 +40,10 @@ def coin_table(request):
         
     return render(request, 'coin_table.html', {'coins': coins})
 
+
+
 def kline_data(request):
-    kline = Kline.objects.all()
+    kline = Kline.objects.all().order_by('-timestamp')
     
     symbol = request.GET.get('symbol', '').strip()
     min_timestamp = request.GET.get('min_timestamp', '').strip()
@@ -71,4 +77,44 @@ def kline_data(request):
             kline = kline.filter(volume__lte=float(max_volume))
         except(ValueError, TypeError):
             pass
-    return render(request, 'kline_table.html', {'kline': kline})
+    paginator = Paginator(kline, 100)
+    page_number = request.GET.get('page')
+    try:
+        page_obj = paginator.page(page_number)
+    except PageNotAnInteger:
+        page_obj = paginator.page(1)
+    except EmptyPage:
+        page_abj = paginator.page(paginator.num_pages)
+        
+    return render(request, 'kline_table.html', {'page_obj': page_obj})
+
+
+
+def kline_chart(request, symbol):
+    klines = Kline.objects.filter(symbol=symbol).order_by('timestamp')
+    
+    if not klines:
+        return render(request, 'kline_chart.html', {'symbol': symbol, 'chart': None})
+    
+    df = pd.DataFrame(list(klines.values()))
+    df['timestamp'] = pd.to_datetime(df['timestamp'], unit='ms')
+    fig = go.Figure(data=[go.Candlestick(
+         x=df['timestamp'],
+         open=df['open_price'],
+         high=df['high_price'],
+         low=df['low_price'],
+         close=df['close_price']
+    )])
+    fig.update_layout(
+        title=f'График цены для {symbol}',
+        yaxis_title='Цена',
+        xaxis_title='Дата и время',
+        xaxis_rangeslider_visible=False
+    )
+    plot_div = plot(fig, output_type='div', include_plotlyjs=False)
+    
+    context = {
+        'symbol': symbol,
+        'chart': plot_div,
+    }
+    return render(request, 'kline_chart.html', context)

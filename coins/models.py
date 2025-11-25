@@ -11,8 +11,8 @@ class Coin(models.Model):
         return self.symbol
     
 class Kline(models.Model):
-    symbol = models.CharField(max_length=20)
-    timestamp = models.BigIntegerField()
+    symbol = models.CharField(max_length=20, db_index=True)
+    timestamp = models.BigIntegerField(db_index=True)
     open_price = models.FloatField()
     close_price = models.FloatField()
     high_price = models.FloatField()
