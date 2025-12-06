@@ -14,7 +14,8 @@ services:
       - db
 
   db:
-    image: postgres:13
+    image: timescale/timescaledb:latest-pg17
+    restart: always
     environment:
       POSTGRES_DB: binance_db
       POSTGRES_USER: postgres
@@ -24,5 +25,18 @@ services:
     ports:
       - "5432:5432"
 
+  frontend: # <-- НОВЫЙ СЕРВИС ДЛЯ VITE
+    image: node:24-alpine # Используем образ Node.js
+    working_dir: /app
+    volumes:
+      - .:/app
+      - /app/node_modules # Используем анонимный том для node_modules внутри контейнера
+    ports:
+      - "5173:5173"
+    command: sh -c "npm install && npm run dev -- --host" # Запускает Vite Dev Server
+    # Убедитесь, что ваш vite.config.js настроен на host: true
+    environment:
+      NODE_ENV: development
+      
 volumes:
   postgres_data:

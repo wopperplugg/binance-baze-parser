@@ -1,29 +1,21 @@
-{% extends "base_generic.html" %}
+{% extends "base_generic.html" %} 
 
 {% block title %}
 <title>График {{ symbol }}</title>
-{% endblock %}
+{% load static %}
+
+{% endblock %} 
 
 {% block content %}
+<!-- 
+  ИЗМЕНЕНА СТРОКА: 
+  Теперь src явно указывает на Vite Dev Server (http://127.0.0.1:5173).
+-->
+<script type="module" src="http://localhost:5173/coins/static/js/chart.js"></script>
 
-<!-- ... (ваш код заголовка и контейнера графика) ... -->
-<script src="https://cdn.plot.ly/plotly-3.3.0.min.js"></script>
-<div class="container mt-5">
-    <h1 class="text-center mb-4">График цены для {{ symbol }}</h1>
-    
-    {% if chart %}
-        <div class="chart-container">
-            <!-- Здесь вставляется HTML-код, сгенерированный Plotly в вашем views.py -->
-            {{ chart|safe }}
-        </div>
-    {% else %}
-        <div class="alert alert-warning text-center" role="alert">
-            Нет данных для отображения графика.
-        </div>
-    {% endif %}
-</div>
-
-<!-- !!! ИСПРАВЛЕННАЯ СТРОКА ПОДКЛЮЧЕНИЯ СКРИПТА !!! -->
-<!-- Используйте абсолютный URL, начинающийся с 'https://' -->
-
+<h1>График цены для {{ symbol }}</h1>
+<div id="chart" style="width: 100%; height: 600px"></div>
+<script type="application/json" id="chart-data">
+  {{ chart_data|safe }}
+</script>
 {% endblock %}

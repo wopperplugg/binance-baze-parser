@@ -6,6 +6,10 @@ from asgiref.sync import sync_to_async
 from .models import Kline
 import asyncio
 from datetime import datetime
+import logging
+
+# Настройка логирования
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'binance_parser.settings')
 django.setup()
@@ -13,59 +17,74 @@ django.setup()
 load_dotenv()
 
 @sync_to_async
-def save_kline_data(symbol, open_price, close_price, high_price, low_price, volume, timestamp):
-    """Сохранение данных о свечах в базу данных."""
-    Kline.objects.update_or_create(
-        symbol=symbol,
-        timestamp=timestamp,
-        defaults={
-            'open_price': open_price,
-            'close_price': close_price,
-            'high_price': high_price,
-            'low_price': low_price,
-            'volume': volume
-        }
-    )
-    print(f"Сохранена свеча для {symbol}: цена открытия={open_price}, цена закрытия={close_price}")
+def save_kline_data_bulk(data):
+    """Сохранение данных о свечах в базу данных пакетно."""
+    Kline.objects.bulk_create([
+        Kline(
+            symbol=item['symbol'],
+            timestamp=item['timestamp'],
+            open_price=item['open_price'],
+            close_price=item['close_price'],
+            high_price=item['high_price'],
+            low_price=item['low_price'],
+            volume=item['volume']
+        ) for item in data
+    ], ignore_conflicts=True)
+    logging.info(f"Сохранено {len(data)} свечей.")
 
-async def fetch_historical_klines(client, symbol, interval, start_time=None, end_time=None, limit=1000):
+async def fetch_historical_klines(client, symbol, interval, start_time="1 Jan 2017", end_time=None, limit=1000):
     """
     Получение исторических данных о свечах с использованием get_historical_klines.
     """
     try:
-        # Преобразование времени в миллисекунды, если переданы строки
+        # Преобразование времени в миллисекунды
         if isinstance(start_time, str):
             start_time = int(datetime.strptime(start_time, "%d %b %Y").timestamp() * 1000)
-        if isinstance(end_time, str):
-            end_time = int(datetime.strptime(end_time, "%d %b %Y").timestamp() * 1000)
 
-        # Получение данных через get_historical_klines
-        klines = await client.get_historical_klines(
-            symbol=symbol,
-            interval=interval,
-            start_str=start_time,
-            end_str=end_time,
-            limit=limit,
-            klines_type=HistoricalKlinesType.FUTURES  # Указываем тип данных: фьючерсы
-        )
+        all_data = []  # Список для хранения всех данных
 
-        # Обработка полученных данных
-        for kline in klines:
-            timestamp = int(kline[0])  # Временная метка открытия
-            open_price = float(kline[1])
-            high_price = float(kline[2])
-            low_price = float(kline[3])
-            close_price = float(kline[4])
-            volume = float(kline[5])
+        while True:
+            # Получение данных через get_historical_klines
+            klines = await client.get_historical_klines(
+                symbol=symbol,
+                interval=interval,
+                start_str=start_time,
+                end_str=end_time,
+                limit=limit,
+                klines_type=HistoricalKlinesType.FUTURES  # Указываем тип данных: фьючерсы
+            )
 
-            await save_kline_data(symbol, open_price, close_price, high_price, low_price, volume, timestamp)
+            if not klines:
+                logging.info(f"Данные для {symbol} закончились.")
+                break
 
-        print(f"Получены данные для {symbol} интервал {interval}")
-        return klines  # Возвращаем данные для дальнейшего использования
+            # Обработка полученных данных
+            for kline in klines:
+                all_data.append({
+                    'symbol': symbol,
+                    'timestamp': int(kline[0]),
+                    'open_price': float(kline[1]),
+                    'high_price': float(kline[2]),
+                    'low_price': float(kline[3]),
+                    'close_price': float(kline[4]),
+                    'volume': float(kline[5])
+                })
+
+            logging.info(f"Получены данные для {symbol}, интервал {interval}. Последняя свеча: {datetime.fromtimestamp(klines[-1][0] / 1000)}")
+
+            # Если данных меньше лимита, значит, они закончились
+            if len(klines) < limit:
+                break
+
+            # Обновляем временную метку для следующего запроса
+            start_time = int(klines[-1][0]) + 1
+            await asyncio.sleep(2)  # Задержка для избежания превышения лимита API
+
+        # Сохраняем все данные пакетно
+        await save_kline_data_bulk(all_data)
 
     except Exception as e:
-        print(f"Ошибка при получении исторических данных: {e}")
-        return []  # Возвращаем пустой список в случае ошибки
+        logging.error(f"Ошибка при получении исторических данных: {e}")
 
 async def start_websocket():
     """
@@ -82,27 +101,14 @@ async def start_websocket():
     try:
         symbols = ['BTCUSDT', 'ETHUSDT']  # Символы фьючерсов
         interval = '1m'  # Интервал свечей (например, 1 минута)
-        start_time = "1 Jan 2023"  # Начальная дата для парсинга
-        end_time = "1 Feb 2023"  # Конечная дата для парсинга
 
         for symbol in symbols:
-            current_start_time = start_time
-            while True:
-                klines = await fetch_historical_klines(
-                    client, symbol, interval, current_start_time, end_time, limit=1000
-                )
-
-                if len(klines) < 1000:  # Если данных меньше 1000, значит, они закончились
-                    break
-
-                # Обновляем временную метку для следующего запроса
-                current_start_time = int(klines[-1][0]) + 1  # Временная метка последней свечи + 1 миллисекунда
-                await asyncio.sleep(10)  # Задержка для избежания превышения лимита API
+            await fetch_historical_klines(client, symbol, interval)
 
     except KeyboardInterrupt:
-        print("Парсинг остановлен пользователем")
+        logging.info("Парсинг остановлен пользователем")
     except Exception as e:
-        print(f"Ошибка при работе с API: {e}")
+        logging.error(f"Ошибка при работе с API: {e}")
     finally:
         await client.close_connection()
 

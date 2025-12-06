@@ -1,9 +1,8 @@
-Django
+django
 psycopg2-binary
 python-binance
 websocket-client
 channels
 dotenv
 asgiref
-plotly
 pandas
