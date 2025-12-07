@@ -45,8 +45,8 @@
         <tbody>
             {% for coin in coins %}
                 <tr class="{% if coin.price_change_persent > 0 %}table-success{% elif coin.price_change_percent < 0 %}table-danger{% endif %}">
-                    <td><a href="{% url 'kline_chart' symbol=coin.symbol %}">
-                        {{ coin.symbol }}
+                    <td><a href="{% url 'get_klines' coin=coin.coin %}">
+                        {{ coin.coin }}
                     </a></td>
                     <td>{{ coin.price }}</td>
                     <td>{{ coin.price_change_percent }}</td>

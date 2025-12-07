@@ -1,21 +1,21 @@
-{% extends "base_generic.html" %} 
+{% extends "base_generic.html" %}
 
 {% block title %}
-<title>График {{ symbol }}</title>
+<title>График {{ coin }} ({{ resolution }})</title>
 {% load static %}
-
-{% endblock %} 
+{% endblock %}
 
 {% block content %}
-<!-- 
-  ИЗМЕНЕНА СТРОКА: 
-  Теперь src явно указывает на Vite Dev Server (http://127.0.0.1:5173).
--->
-<script type="module" src="http://localhost:5173/coins/static/js/chart.js"></script>
+<h1>График цены для {{ coin }} (Resolution: {{ resolution }})</h1>
 
-<h1>График цены для {{ symbol }}</h1>
+<!-- Контейнер для графика -->
 <div id="chart" style="width: 100%; height: 600px"></div>
+
+<!-- Данные графика в формате JSON -->
 <script type="application/json" id="chart-data">
   {{ chart_data|safe }}
 </script>
+
+<!-- Подключение Chart.js через Vite Dev Server -->
+<script type="module" src="http://localhost:5173/coins/static/js/chart.js"></script>
 {% endblock %}
