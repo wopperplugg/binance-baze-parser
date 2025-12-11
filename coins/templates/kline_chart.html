@@ -6,16 +6,15 @@
 {% endblock %}
 
 {% block content %}
+
 <h1>График цены для {{ coin }} (Resolution: {{ resolution }})</h1>
 
-<!-- Контейнер для графика -->
-<div id="chart" style="width: 100%; height: 600px"></div>
+<div id="chart-container" class="chart-container"></div>
 
-<!-- Данные графика в формате JSON -->
-<script type="application/json" id="chart-data">
-  {{ chart_data|safe }}
-</script>
+<div id="data-config"
+     data-coin="{{ coin_name }}"
+     data-api-url="{% url 'get_klines_api' coin=coin_name %}"></div>
 
 <!-- Подключение Chart.js через Vite Dev Server -->
-<script type="module" src="http://localhost:5173/coins/static/js/chart.js"></script>
+<script type="module" src="http://localhost:5173/coins/static/js/main.js"></script>
 {% endblock %}

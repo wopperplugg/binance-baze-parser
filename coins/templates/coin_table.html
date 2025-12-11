@@ -1,30 +1,34 @@
 {% extends "base_generic.html" %}
-{% block title%}
+{% load querystr %}
+{% block title %}
 <title>Текущие курсы монет</title>
 {% endblock %}
+
 {% block content %}
 <div class="container mt-5">
     <h1 class="text-center mb-4">Список монет</h1>
-    <form method="get" class"mb-4">
+
+    <!-- Форма фильтрации -->
+    <form method="get" class="mb-4">
         <div class="row g-3">
             <div class="col-md-4">
-                <label for="symbol" class="form-label">Название монеты:</label>
-                <input type="text" name="symbol" id="symbol" class"form-control" placeholder="введите название" value="{{ request.GET.symbol }}">          
+                <label for="coin" class="form-label">Название монеты:</label>
+                <input type="text" name="coin" id="coin" class="form-control" placeholder="Введите название" value="{{ request.GET.coin }}">
             </div>
             <div class="col-md-4">
                 <label for="min_price" class="form-label">Минимальная цена:</label>
-                <input type="number" name="min_price" id="min_price" class"form-control" placeholder="Мин. цена" value="{{ request.GET.min_price }}">          
+                <input type="number" name="min_price" id="min_price" class="form-control" placeholder="Мин. цена" value="{{ request.GET.min_price }}">
             </div>
             <div class="col-md-4">
                 <label for="max_price" class="form-label">Максимальная цена:</label>
-                <input type="number" name="max_price" id="max_price" class"form-control" placeholder="Макс. цена" value="{{ request.GET.max_price }}">          
+                <input type="number" name="max_price" id="max_price" class="form-control" placeholder="Макс. цена" value="{{ request.GET.max_price }}">
             </div>
             <div class="col-md-4">
                 <label for="price_change" class="form-label">Изменение цены за 24 часа:</label>
                 <select name="price_change" id="price_change" class="form-select">
                     <option value="">Любое изменение</option>
                     <option value="1" {% if request.GET.price_change == '1' %}selected{% endif %}>Рост цены</option>
-                    <option value="-1" {% if request.GET.price_change == '-1'%}selected{% endif %}>Падение цены</option>
+                    <option value="-1" {% if request.GET.price_change == '-1' %}selected{% endif %}>Падение цены</option>
                 </select>
             </div>
         </div>
@@ -34,25 +38,54 @@
         </div>
     </form>
 
+    <!-- Таблица монет -->
     <table class="table table-striped table-bordered table-hover">
         <thead class="table-dark">
             <tr>
                 <th scope="col">Название</th>
                 <th scope="col">Цена</th>
-                <th score="col">Изменение цены за 24 часа</th>
+                <th scope="col">Изменение цены за 24 часа (%)</th>
             </tr>
         </thead>
         <tbody>
             {% for coin in coins %}
-                <tr class="{% if coin.price_change_persent > 0 %}table-success{% elif coin.price_change_percent < 0 %}table-danger{% endif %}">
-                    <td><a href="{% url 'get_klines' coin=coin.coin %}">
-                        {{ coin.coin }}
-                    </a></td>
+                <tr class="{% if coin.price_change_percent > 0 %}table-success{% elif coin.price_change_percent < 0 %}table-danger{% endif %}">
+                    <td>
+                        <a href="{% url 'get_klines' coin=coin.coin %}">
+                            {{ coin.coin }}
+                        </a>
+                    </td>
                     <td>{{ coin.price }}</td>
                     <td>{{ coin.price_change_percent }}</td>
                 </tr>
             {% endfor %}
         </tbody>
     </table>
+
+    <!-- Пагинация -->
+    <nav aria-label="Page navigation">
+        <ul class="pagination justify-content-center">
+            <!-- Ссылка на предыдущую страницу -->
+            {% if coins.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ coins.previous_page_number }}&{{ query_params }}">Предыдущая</a>
+                </li>
+            {% else %}
+                <li class="page-item disabled">
+                    <span class="page-link">Предыдущая</span>
+                </li>
+            {% endif %}
+
+            {% if coins.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ coins.next_page_number }}&{{ query_params }}">Следующая</a>
+                </li>
+            {% else %}
+                <li class="page-item disabled">
+                    <span class="page-link">Следующая</span>
+                </li>
+            {% endif %}
+        </ul>
+    </nav>
 </div>
 {% endblock %}

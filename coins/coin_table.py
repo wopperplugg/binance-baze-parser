@@ -48,6 +48,8 @@ async def handle_socket_message(messages):
 
                 await save_coin_data(symbol, price, price_change_percent, volume)
 
+                await asyncio.sleep(1)
+
     except Exception as e:
         print(f"Ошибка при обработке сообщения: {e}")
 
@@ -71,6 +73,8 @@ async def start_websocket():
                 res = await stream.recv()
                 if "data" in res:
                     await handle_socket_message(res["data"])
+
+                await asyncio.sleep(1)
     except KeyboardInterrupt:
         print("WebSocket остановлен пользователем")
     except Exception as e:

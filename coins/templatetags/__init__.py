@@ -1,0 +1,1 @@
+print("✅ Приложение 'coins\\templatetags' успешно загружено!")

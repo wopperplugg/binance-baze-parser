@@ -38,4 +38,4 @@ class Kline(models.Model):
         ]
           
     def __str__(self):
-        return f"{self.coin.symbol} - {self.transaction_time.isoformat()}"
+        return f"{self.coin.coin} - {self.transaction_time.isoformat()}"
