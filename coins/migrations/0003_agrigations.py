@@ -11,6 +11,51 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
+        # материальное представление для 1m
+        migrations.RunSQL(
+            sql="""
+            CREATE MATERIALIZED VIEW IF NOT EXISTS coins_kline_1m
+            WITH (timescaledb.continuous) AS
+            SELECT
+                coin_id AS coin_id,
+                time_bucket('1 minute', transaction_time) AS bucket,
+                first(open_price, transaction_time) AS open_price,
+                max(high_price) AS high_price,
+                min(low_price) AS low_price,
+                last(close_price, transaction_time) AS close_price,
+                sum(volume) AS volume
+            FROM coins_kline
+            WHERE transaction_time > NOW() - INTERVAL '7 days'
+            GROUP BY coin_id, bucket;
+            """,
+            reverse_sql="DROP MATERIALIZED VIEW IF EXISTS coins_kline_1m;",
+        ),
+        # Добавление индекса
+        migrations.RunSQL(
+            sql="""
+            CREATE INDEX IF NOT EXISTS coins_kline_1m_coin_bucket_idx
+            ON coins_kline_1m (coin_id, bucket DESC);
+            """,
+            reverse_sql="DROP INDEX IF EXISTS coins_kline_1m_coin_bucket_idx;",
+        ),
+        # Добавление политики обновления
+        migrations.RunSQL(
+            sql="""
+            SELECT add_continuous_aggregate_policy('coins_kline_1m',
+                start_offset => INTERVAL '7 days',
+                end_offset => INTERVAL '0 minutes',
+                schedule_interval => INTERVAL '1 minute');
+            """,
+            reverse_sql="""
+            DO $$
+            BEGIN
+                IF EXISTS (SELECT 1 FROM pg_matviews WHERE matviewname = 'coins_kline_1m') THEN
+                    SELECT remove_continuous_aggregate_policy('coins_kline_1m');
+                    DROP MATERIALIZED VIEW IF EXISTS coins_kline_1m;
+                END IF;
+            END $$;
+            """,
+        ),
         # coins_kline_5m
         migrations.RunSQL(
             sql="""
@@ -44,7 +89,13 @@ class Migration(migrations.Migration):
                 schedule_interval => INTERVAL '1 minute');
             """,
             reverse_sql="""
-            SELECT remove_continuous_aggregate_policy('coins_kline_5m');
+            DO $$
+            BEGIN
+                IF EXISTS (SELECT 1 FROM pg_matviews WHERE matviewname = 'coins_kline_5n') THEN
+                    SELECT remove_continuous_aggregate_policy('coins_kline_5m');
+                    DROP MATERIALIZED VIEW IF EXISTS coins_kline_5m;
+                END IF;
+            END $$;
             """,
         ),
         # coins_kline_15m
@@ -80,7 +131,13 @@ class Migration(migrations.Migration):
                 schedule_interval => INTERVAL '5 minutes');
             """,
             reverse_sql="""
-            SELECT remove_continuous_aggregate_policy('coins_kline_15m');
+            DO $$
+            BEGIN
+                IF EXISTS (SELECT 1 FROM pg_matviews WHERE matviewname = 'coins_kline_15m') THEN
+                    SELECT remove_continuous_aggregate_policy('coins_kline_15m');
+                    DROP MATERIALIZED VIEW IF EXISTS coins_kline_15m;
+                END IF;
+            END $$;
             """,
         ),
         # coins_kline_1h
@@ -116,7 +173,13 @@ class Migration(migrations.Migration):
                 schedule_interval => INTERVAL '15 minutes');
             """,
             reverse_sql="""
-            SELECT remove_continuous_aggregate_policy('coins_kline_1h');
+            DO $$
+            BEGIN
+                IF EXISTS (SELECT 1 FROM pg_matviews WHERE matviewname = 'coins_kline_1h') THEN
+                    SELECT remove_continuous_aggregate_policy('coins_kline_1h');
+                    DROP MATERIALIZED VIEW IF EXISTS coins_kline_1h;
+                END IF;
+            END $$;
             """,
         ),
         # coins_kline_4h
@@ -152,7 +215,13 @@ class Migration(migrations.Migration):
                 schedule_interval => INTERVAL '1 hour');
             """,
             reverse_sql="""
-            SELECT remove_continuous_aggregate_policy('coins_kline_4h');
+            DO $$
+            BEGIN
+                IF EXISTS (SELECT 1 FROM pg_matviews WHERE matviewname = 'coins_kline_4h') THEN
+                    SELECT remove_continuous_aggregate_policy('coins_kline_4h');
+                    DROP MATERIALIZED VIEW IF EXISTS coins_kline_4h;
+                END IF;
+            END $$;
             """,
         ),
         # coins_kline_1d
@@ -188,7 +257,13 @@ class Migration(migrations.Migration):
                 schedule_interval => INTERVAL '6 hours');
             """,
             reverse_sql="""
-            SELECT remove_continuous_aggregate_policy('coins_kline_1d');
+            DO $$
+            BEGIN
+                IF EXISTS (SELECT 1 FROM pg_matviews WHERE matviewname = 'coins_kline_1d') THEN
+                    SELECT remove_continuous_aggregate_policy('coins_kline_1d');
+                    DROP MATERIALIZED VIEW IF EXISTS coins_kline_1d;
+                END IF;
+            END $$;
             """,
         ),
         # coins_kline_1w
@@ -224,7 +299,13 @@ class Migration(migrations.Migration):
                 schedule_interval => INTERVAL '1 day');
             """,
             reverse_sql="""
-            SELECT remove_continuous_aggregate_policy('coins_kline_1w');
+            DO $$
+            BEGIN
+                IF EXISTS (SELECT 1 FROM pg_matviews WHERE matviewname = 'coins_kline_1w') THEN
+                    SELECT remove_continuous_aggregate_policy('coins_kline_1w');
+                    DROP MATERIALIZED VIEW IF EXISTS coins_kline_1w;
+                END IF;
+            END $$;
             """,
         ),
     ]

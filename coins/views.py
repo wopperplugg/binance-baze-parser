@@ -55,7 +55,7 @@ def coin_table(request):
 
 
 RES_MAP = {
-    "1m": "coins_kline",
+    "1m": "coins_kline_1m",
     "5m": "coins_kline_5m",
     "15m": "coins_kline_15m",
     "1h": "coins_kline_1h",
@@ -157,7 +157,7 @@ def coin_chart_page(request, coin):
     resolution = request.GET.get("resolution", "1m")
     table = RES_MAP.get(resolution)
     context = {
-        "coin_name": coin_obj.coin,
+        "coin": coin_obj.coin,
         "resolution": resolution,
     }
     return render(request, "kline_chart.html", context)

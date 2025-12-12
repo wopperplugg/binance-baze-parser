@@ -12,9 +12,9 @@
 <div id="chart-container" class="chart-container"></div>
 
 <div id="data-config"
-     data-coin="{{ coin_name }}"
-     data-api-url="{% url 'get_klines_api' coin=coin_name %}"></div>
+     data-coin="{{ coin }}"
+     data-api-url="{% url 'get_klines_api' coin=coin %}"></div>
 
-<!-- Подключение Chart.js через Vite Dev Server -->
+<!-- Подключение Chart.js через vite -->
 <script type="module" src="http://localhost:5173/coins/static/js/main.js"></script>
 {% endblock %}
