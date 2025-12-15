@@ -11,47 +11,63 @@ export function renderD3KlineChart(containerId, rawData) {
     }));
     data.sort((a, b) => a.date - b.date);
 
-    const margin = { top: 20, right: 50, bottom: 30, left: 50 },
-        width = 800 - margin.left - margin.right,
-        height = 400 - margin.top - margin.bottom,
-        container = d3.select(`#${containerId}`);
-
+    // Получаем контейнер
+    const container = d3.select(`#${containerId}`);
     if (container.empty()) {
         console.error(`Контейнер с ID '${containerId}' не найден.`);
         return;
     }
-    container.html(""); 
+
+    // Очищаем контейнер
+    container.html("");
+
+    // Функция для получения размеров контейнера
+    function getContainerSize() {
+        const boundingBox = container.node().getBoundingClientRect();
+        return {
+            width: boundingBox.width,
+            height: boundingBox.height
+        };
+    }
+
+    // Размеры контейнера
+    let { width, height } = getContainerSize();
+
+    // Отступы
+    const margin = { top: 20, right: 50, bottom: 30, left: 50 };
+    const innerWidth = width - margin.left - margin.right;
+    const innerHeight = height - margin.top - margin.bottom;
 
     // Создание SVG
     const svg = container
         .append("svg")
-        .attr("width", width + margin.left + margin.right)
-        .attr("height", height + margin.top + margin.bottom)
+        .attr("width", width)
+        .attr("height", height)
         .append("g")
         .attr("transform", `translate(${margin.left},${margin.top})`);
 
-    // Масштабы (начальные до зума)
+    // Масштабы
     const xScale = d3.scaleTime()
         .domain(d3.extent(data, d => d.date))
-        .range([0, width]);
+        .range([0, innerWidth]);
 
     const yScale = d3.scaleLinear()
         .domain([d3.min(data, d => d.low) * 0.98, d3.max(data, d => d.high) * 1.02])
-        .range([height, 0]);
-    
+        .range([innerHeight, 0]);
+
     // clipPath для ограничения области отрисовки
     svg.append("defs").append("clipPath")
         .attr("id", "clip")
         .append("rect")
-        .attr("width", width)
-        .attr("height", height);
+        .attr("width", innerWidth)
+        .attr("height", innerHeight);
 
     const chartBody = svg.append("g")
         .attr("clip-path", "url(#clip)");
-        
+
     const xAxis = svg.append("g")
         .attr("class", "x-axis")
-        .attr("transform", `translate(0, ${height})`)
+        .attr("transform", `translate(0, ${innerHeight})`)
         .call(d3.axisBottom(xScale));
 
     const yAxis = svg.append("g")
@@ -63,14 +79,14 @@ export function renderD3KlineChart(containerId, rawData) {
         if (data.length <= 1) return 10;
         let avgDiff = 0;
         for (let i = 0; i < Math.min(data.length - 1, 10); i++) {
-            avgDiff += (data[i+1].date - data[i].date);
+            avgDiff += (data[i + 1].date - data[i].date);
         }
         avgDiff /= Math.min(data.length - 1, 10);
         const baseDate = data[0].date;
         const widthAtScale = scale(new Date(baseDate.getTime() + avgDiff)) - scale(baseDate);
         return Math.max(2, widthAtScale * 0.8);
     }
-    
+
     let barWidth = calculateBarWidth(xScale);
 
     // Функция отрисовки свечей
@@ -103,21 +119,21 @@ export function renderD3KlineChart(containerId, rawData) {
 
     // Tooltip setup
     const tooltip = d3.select("body")
-      .append("div")
-      .attr("id", "tooltip")
-      .style("position", "absolute")
-      .style("background", "white")
-      .style("padding", "5px")
-      .style("border", "1px solid #ccc")
-      .style("pointer-events", "none")
-      .style("opacity", 0)
-      .style("font-family", "Arial, sans-serif");
+        .append("div")
+        .attr("id", "tooltip")
+        .style("position", "absolute")
+        .style("background", "white")
+        .style("padding", "5px")
+        .style("border", "1px solid #ccc")
+        .style("pointer-events", "none")
+        .style("opacity", 0)
+        .style("font-family", "Arial, sans-serif");
 
     // Zoom functionality setup
     const zoom = d3.zoom()
-        .scaleExtent([1, 40]) 
-        .translateExtent([[-margin.left, 0], [width + margin.right, height]]) 
-        .extent([[0, 0], [width, height]])
+        .scaleExtent([1, 40])
+        .translateExtent([[-margin.left, 0], [innerWidth + margin.right, innerHeight]])
+        .extent([[0, 0], [innerWidth, innerHeight]])
         .on("zoom", zoomed);
 
     // Применяем зум ко всему SVG-контейнеру
@@ -129,7 +145,7 @@ export function renderD3KlineChart(containerId, rawData) {
 
         // Обновляем xScale на основе трансформации (масштаб и сдвиг)
         const updatedXScale = newTransform.rescaleX(xScale);
-        
+
         barWidth = calculateBarWidth(updatedXScale);
 
         // Обновляем оси
@@ -143,7 +159,7 @@ export function renderD3KlineChart(containerId, rawData) {
     drawCandles(xScale);
 
     // Добавляем динамическое событие для тултипа
-    chartBody.on("mousemove", function(event) {
+    chartBody.on("mousemove", function (event) {
         const [mouseX] = d3.pointer(event);
 
         // Находим ближайшую свечу к позиции курсора
@@ -172,9 +188,43 @@ export function renderD3KlineChart(containerId, rawData) {
     });
 
     // Скрываем тултип при выходе за пределы графика
-    chartBody.on("mouseleave", function() {
+    chartBody.on("mouseleave", function () {
         tooltip.style("opacity", 0);
     });
 
-    console.log("График D3 обновлен с возможностями зума/панорамирования и рабочим тултипом.");
+    // Обновление графика при изменении размера окна
+    function updateChartSize() {
+        const newSize = getContainerSize();
+        width = newSize.width;
+        height = newSize.height;
+
+        const innerWidth = width - margin.left - margin.right;
+        const innerHeight = height - margin.top - margin.bottom;
+
+        // Обновляем размеры SVG
+        svg.attr("width", width).attr("height", height);
+
+        // Обновляем масштабы
+        xScale.range([0, innerWidth]);
+        yScale.range([innerHeight, 0]);
+
+        // Обновляем оси
+        xAxis.attr("transform", `translate(0, ${innerHeight})`).call(d3.axisBottom(xScale));
+        yAxis.call(d3.axisLeft(yScale));
+
+        // Обновляем clipPath
+        svg.select("#clip rect")
+            .attr("width", innerWidth)
+            .attr("height", innerHeight);
+
+        // Перерисовываем свечи
+        barWidth = calculateBarWidth(xScale);
+        drawCandles(xScale);
+    }
+
+    // Добавляем обработчик изменения размера окна
+    window.addEventListener("resize", updateChartSize);
+
+    // Первая отрисовка
+    updateChartSize();
 }
