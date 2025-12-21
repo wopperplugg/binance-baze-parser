@@ -3,8 +3,9 @@ from django.views.decorators.http import require_GET
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.http import JsonResponse
 from .models import Coin
-from .services import fetch_klines_data
+from .services import fetch_klines_data, fetch_order_book_data, validate_coin_and_limit
 from .constants import RES_MAP
+
 
 def coins(request):
     return render(request, "coins.html")
@@ -53,37 +54,45 @@ def coin_table(request):
     return render(request, "coin_table.html", {"coins": coins_page})
 
 
-
-
 @require_GET
 def get_klines(request, coin):
-    try:
-        coin_obj = Coin.objects.get(coin__iexact=coin)
-    except Coin.DoesNotExist:
-        return JsonResponse({"error": "Coin not found"}, status=404)
+    coin_obj, limit = validate_coin_and_limit(request, coin)
+    if isinstance(limit, JsonResponse):
+        return limit
 
     resolution = request.GET.get("resolution", "1m")
     if resolution not in RES_MAP:
         return JsonResponse({"error": "Invalid resolution"}, status=400)
 
     try:
-        limit = min(int(request.GET.get("limit", 500)), 1000)
-    except ValueError:
-        return JsonResponse({"error": "Invalid limit"}, status=400)
-
-    try:
         data = fetch_klines_data(coin_obj.coin, resolution, limit=limit)
         return JsonResponse(data)
     except Exception as e:
-        return JsonResponse({"error": "Internal server error", "details": str(e)}, status=500)
+        return JsonResponse(
+            {"error": "Internal server error", "details": str(e)}, status=500
+        )
 
 
-def coin_chart_page(request, coin):
+@require_GET
+def get_order_book(request, coin):
+    coin_obj, limit = validate_coin_and_limit(request, coin)
+    if isinstance(limit, JsonResponse):
+        return limit
+
+    try:
+        data = fetch_order_book_data(coin_obj.coin, limit=limit)
+        return JsonResponse(data)
+    except Exception as e:
+        return JsonResponse(
+            {"error": "Internal server error", "details": str(e)}, status=500
+        )
+
+
+def chart_page(request, coin):
     coin_obj = get_object_or_404(Coin, coin__iexact=coin)
     resolution = request.GET.get("resolution", "1m")
-    table = RES_MAP.get(resolution)
     context = {
         "coin": coin_obj.coin,
         "resolution": resolution,
     }
-    return render(request, "kline_chart.html", context)
+    return render(request, "combined_chart.html", context)

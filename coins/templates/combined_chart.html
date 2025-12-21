@@ -1,0 +1,69 @@
+{% extends "base_generic.html" %}
+
+{% block title %}
+<title>График {{ coin }} ({{ resolution }}) — CryptoLive</title>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row mb-3">
+        <div class="col-12 text-center">
+            <h1 class="display-5 fw-bold">Графики для {{ coin }} <small class="text-muted">(Resolution: {{ resolution }})</small></h1>
+        </div>
+    </div>
+
+    <!-- Кнопки выбора таймфрейма -->
+    <div class="row mb-3">
+        <div class="col-12 text-center">
+            <div class="btn-group" role="group" aria-label="Timeframe selector">
+                {% for tf in timeframes %}
+                    <button type="button"
+                            class="btn btn-outline-secondary btn-sm {% if tf == resolution %}active{% endif %}"
+                            data-resolution="{{ tf }}"
+                            onclick="changeResolution('{{ tf }}')">
+                        {{ tf }}
+                    </button>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Основная сетка -->
+    <div class="row g-3">
+        <!-- Левая колонка: Стакан цен -->
+        <div class="col-md-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Стакан цен</h5>
+                </div>
+                <div id="orderbook-container" class="card-body p-0 order-book-container-wrapper">
+                    <!-- Стакан будет отрисован здесь -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Правая колонка: График свечей -->
+        <div class="col-md-8">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">График свечей</h5>
+                    <div id="current-price" class="badge bg-light text-dark fs-6">—</div>
+                </div>
+                <div id="kline-chart-container" class="card-body p-0" style="height: 500px; position: relative;">
+                    <!-- D3 будет рисовать здесь -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Конфигурация данных для JavaScript -->
+    <div id="data-config"
+         data-coin="{{ coin }}"
+         data-klines-api-url="{% url 'get_klines_api' coin=coin %}"
+         data-orderbook-api-url="{% url 'get_order_book_api' coin=coin %}"
+         hidden></div>
+
+    <!-- Подключение Chart.js через vite -->
+    <script type="module" src="http://localhost:5173/coins/static/js/main.js"></script>
+</div>
+{% endblock %}

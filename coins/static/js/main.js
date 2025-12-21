@@ -1,9 +1,16 @@
-import { fetchKlinesData } from "./apiService";
-import { renderD3KlineChart } from "./chart";
+import { fetchKlinesData, fetchOrderBookData } from "./apiService";
+import { renderD3KlineChart, renderOrderBook } from "./chart";
 
 document.addEventListener('DOMContentLoaded', async () => {
+    // Получение конфигурации
     const configElement = document.getElementById('data-config');
-    const apiUrl = configElement.dataset.apiUrl;
+    if (!configElement) {
+        console.error("Элемент 'data-config' не найден!");
+        return;
+    }
+
+    const klinesApiUrl = configElement.dataset.klinesApiUrl;
+    const orderBookApiUrl = configElement.dataset.orderbookApiUrl; // Добавляем URL для стакана
 
     // Инициализация параметров запроса
     let requestParams = {
@@ -22,54 +29,108 @@ document.addEventListener('DOMContentLoaded', async () => {
         "1d": "coins_kline_1d",
     };
 
-    // Элемент контейнера графика
-    const chartContainer = document.getElementById('chart-container');
+    // Элементы контейнеров
+    const chartContainer = document.getElementById('kline-chart-container');
+    if (!chartContainer) {
+        console.error("Элемент 'kline-chart-container' не найден!");
+        return;
+    }
 
-    // Функция для загрузки и отрисовки данных
+    const orderBookContainer = document.getElementById('orderbook-container'); // Добавляем контейнер для стакана
+    if (!orderBookContainer) {
+        console.error("Элемент 'orderbook-container' не найден!");
+        return;
+    }
+
+    // Функция для загрузки и отрисовки данных графика
     async function loadAndRenderChart(resolution) {
         try {
             console.log(`Запуск загрузки и отрисовки D3 с разрешением ${resolution}...`);
             requestParams.resolution = resolution; // Обновляем разрешение
             requestParams.table = RES_MAP[resolution]; // Обновляем таблицу
 
-            const rawData = await fetchKlinesData(apiUrl, requestParams);
+            console.log(`Запрос данных с параметрами:`, requestParams);
+            console.log(`URL запроса: ${klinesApiUrl}`);
+
+            const rawData = await fetchKlinesData(klinesApiUrl, requestParams);
+
+            if (!rawData || rawData.length === 0) {
+                throw new Error("Получены пустые данные");
+            }
 
             // Очищаем контейнер перед отрисовкой нового графика
             chartContainer.innerHTML = "";
 
             // Отрисовываем график
-            renderD3KlineChart('chart-container', rawData);
+            renderD3KlineChart('kline-chart-container', rawData);
         } catch (error) {
-            console.error("Ошибка при загрузке или отрисовке D3:", error);
-            chartContainer.innerText = "Не удалось загрузить данные графика D3";
+            console.error("Ошибка при загрузке или отрисовке D3:", error.message);
+            chartContainer.innerText = `Ошибка: ${error.message}`;
+        }
+    }
+
+    // Функция для загрузки и отрисовки стакана ордеров
+    async function loadAndRenderOrderBook() {
+        try {
+            console.log("Запуск загрузки стакана ордеров...");
+            console.log(`URL запроса: ${orderBookApiUrl}`);
+
+            const orderBookData = await fetchOrderBookData(orderBookApiUrl);
+
+            if (!orderBookData || (!orderBookData.bids?.length && !orderBookData.asks?.length)) {
+                throw new Error("Получены пустые данные стакана");
+            }
+
+            // Очищаем контейнер перед отрисовкой
+            orderBookContainer.innerHTML = "";
+
+            // Отрисовываем стакан
+            renderOrderBook('orderbook-container', orderBookData);
+
+        } catch (error) {
+            console.error("Ошибка при загрузке или отрисовке стакана:", error.message);
+            orderBookContainer.innerText = `Ошибка: ${error.message}`;
         }
     }
 
     // Создаем кнопки для изменения разрешения
     const buttonContainer = document.createElement('div');
-    buttonContainer.style.marginBottom = "10px"; // Отступ между кнопками и графиком
+    buttonContainer.style.marginBottom = "10px";
+    buttonContainer.style.display = "flex"; // Горизонтальное расположение кнопок
+    buttonContainer.style.gap = "5px"; // Пространство между кнопками
 
-    // Возможные значения разрешения
     const resolutions = Object.keys(RES_MAP); // ['1m', '5m', '15m', '1h', '4h', '1d']
     resolutions.forEach(resolution => {
         const button = document.createElement('button');
         button.textContent = resolution;
-        button.style.marginRight = "5px";
         button.style.padding = "5px 10px";
         button.style.border = "1px solid #ccc";
         button.style.cursor = "pointer";
 
-        // Добавляем обработчик события на кнопку
+        // Добавляем класс для стилизации
+        button.classList.add("resolution-button");
+
+        // Обработчик события
         button.addEventListener('click', () => {
-            loadAndRenderChart(resolution); // Загружаем и отрисовываем график с новым разрешением
+            loadAndRenderChart(resolution);
         });
 
         buttonContainer.appendChild(button);
     });
 
     // Добавляем контейнер с кнопками перед графиком
+    if (!chartContainer.parentNode) {
+        console.error("Родительский элемент для 'kline-chart-container' не найден!");
+        return;
+    }
     chartContainer.parentNode.insertBefore(buttonContainer, chartContainer);
 
     // Загружаем начальный график с разрешением '1d'
     loadAndRenderChart(requestParams.resolution);
+
+    // Загружаем и отрисовываем стакан ордеров
+    loadAndRenderOrderBook();
+
+    // Опционально: обновляем стакан каждые 5 секунд
+    setInterval(loadAndRenderOrderBook, 5000);
 });
