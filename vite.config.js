@@ -9,7 +9,7 @@ export default defineConfig({
     // Настройки Rollup для режима библиотеки
     rollupOptions: {
       input: {
-        chart: './coins/static/js/chart.js', // Точка входа для вашей библиотеки
+        chart: './coins/static/js/main.js', // Точка входа для вашей библиотеки
       },
       output: {
         // Убедитесь, что имена файлов не содержат хешей для простоты использования в Django static
@@ -19,9 +19,9 @@ export default defineConfig({
       }
     },
     lib: {
-      entry: './coins/static/js/chart.js', // Повторно указываем точку входа
+      entry: './coins/static/js/main.js', // Повторно указываем точку входа
       formats: ['es'], // ES Module формат
-      fileName: () => 'chart.js' // Имя выходного файла
+      fileName: () => 'main.js' // Имя выходного файла
     }
   },
   server: {

@@ -53,8 +53,7 @@ services:
     build: .
     command: >
       sh -c "python manage.py wait_for_db &&
-             celery -A binance_parser beat --loglevel=info --scheduler
-             django_celery_beat.schedulers:DatabaseScheduler"
+         celery -A binance_parser beat --loglevel=info --scheduler django_celery_beat.schedulers:DatabaseScheduler"
     volumes:
       - .:/app
     depends_on:
