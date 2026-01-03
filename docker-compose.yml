@@ -38,6 +38,30 @@ services:
     volumes:
       - redis-data:/data
 
+  celery_worker:
+    build: .
+    command: >
+      sh -c "python manage.py wait_for_db &&
+             celery -A binance_parser worker --loglevel=info"
+    volumes:
+      - .:/app
+    depends_on:
+      - db
+      - redis
+      - web
+  celery_beat:
+    build: .
+    command: >
+      sh -c "python manage.py wait_for_db &&
+             celery -A binance_parser beat --loglevel=info --scheduler
+             django_celery_beat.schedulers:DatabaseScheduler"
+    volumes:
+      - .:/app
+    depends_on:
+      - db
+      - redis
+      - web
+
   frontend: # <-- НОВЫЙ СЕРВИС ДЛЯ VITE
     image: node:24-alpine # Используем образ Node.js
     working_dir: /app
@@ -52,7 +76,7 @@ services:
       NODE_ENV: development
     depends_on:
       - web
-      
+
 volumes:
   postgres_data:
   redis-data:

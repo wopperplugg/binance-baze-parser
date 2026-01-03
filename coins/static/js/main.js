@@ -1,6 +1,7 @@
 import { fetchKlinesData, fetchOrderBookData } from "./apiService";
 import { renderD3KlineChart } from "./kline-chart";
 import { renderOrderBook } from "./order-book";
+import { renderSentimentChart, renderVolatilityChart, renderTechnicalChart } from "./indicator-charts";
 
 document.addEventListener('DOMContentLoaded', async () => {
     // Получение конфигурации
@@ -12,6 +13,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const klinesApiUrl = configElement.dataset.klinesApiUrl;
     const orderBookApiUrl = configElement.dataset.orderbookApiUrl; // Добавляем URL для стакана
+        const sentimentApiUrl = configElement.dataset.sentimentApiUrl;
+    const volatilityApiUrl = configElement.dataset.volatilityApiUrl;
+    const technicalApiUrl = configElement.dataset.technicalApiUrl;
 
     // Инициализация параметров запроса
     let requestParams = {
@@ -43,6 +47,24 @@ document.addEventListener('DOMContentLoaded', async () => {
         return;
     }
 
+    // Контейнеры для индикаторных графиков
+    const sentimentContainer = document.getElementById('sentiment-chart-container');
+    if (!sentimentContainer) {
+        console.error("Элемент 'sentiment-chart-container' не найден!");
+        return;
+    }
+
+    const volatilityContainer = document.getElementById('volatility-chart-container');
+    if (!volatilityContainer) {
+        console.error("Элемент 'volatility-chart-container' не найден!");
+        return;
+    }
+
+    const technicalContainer = document.getElementById('technical-chart-container');
+    if (!technicalContainer) {
+        console.error("Элемент 'technical-chart-container' не найден!");
+        return;
+    }
     // Функция для загрузки и отрисовки данных графика
     async function loadAndRenderChart(resolution) {
         try {
@@ -94,6 +116,92 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
+
+    
+    // Функция для загрузки и отрисовки sentiment индикаторов
+    async function loadAndRenderSentiment() {
+        try {
+            console.log("Запуск загрузки sentiment индикаторов...");
+            console.log(`URL запроса: ${sentimentApiUrl}`);
+
+            const response = await fetch(`${sentimentApiUrl}?limit=50`);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            const sentimentData = await response.json();
+
+            if (!sentimentData || sentimentData.length === 0) {
+                throw new Error("Получены пустые данные sentiment индикаторов");
+            }
+
+            // Очищаем контейнер перед отрисовкой
+            sentimentContainer.innerHTML = "";
+
+            // Отрисовываем график
+            renderSentimentChart('sentiment-chart-container', sentimentData);
+
+        } catch (error) {
+            console.error("Ошибка при загрузке или отрисовке sentiment индикаторов:", error.message);
+            sentimentContainer.innerText = `Ошибка: ${error.message}`;
+        }
+    }
+
+    // Функция для загрузки и отрисовки volatility/liquidity индикаторов
+    async function loadAndRenderVolatility() {
+        try {
+            console.log("Запуск загрузки volatility/liquidity индикаторов...");
+            console.log(`URL запроса: ${volatilityApiUrl}`);
+
+            const response = await fetch(`${volatilityApiUrl}?limit=50`);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            const volatilityData = await response.json();
+
+            if (!volatilityData || volatilityData.length === 0) {
+                throw new Error("Получены пустые данные volatility/liquidity индикаторов");
+            }
+
+            // Очищаем контейнер перед отрисовкой
+            volatilityContainer.innerHTML = "";
+
+            // Отрисовываем график
+            renderVolatilityChart('volatility-chart-container', volatilityData);
+
+        } catch (error) {
+            console.error("Ошибка при загрузке или отрисовке volatility/liquidity индикаторов:", error.message);
+            volatilityContainer.innerText = `Ошибка: ${error.message}`;
+        }
+    }
+
+    // Функция для загрузки и отрисовки technical индикаторов
+    async function loadAndRenderTechnical() {
+        try {
+            console.log("Запуск загрузки technical индикаторов...");
+            console.log(`URL запроса: ${technicalApiUrl}`);
+
+            const response = await fetch(`${technicalApiUrl}?limit=50`);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            const technicalData = await response.json();
+
+            if (!technicalData || technicalData.length === 0) {
+                throw new Error("Получены пустые данные technical индикаторов");
+            }
+
+            // Очищаем контейнер перед отрисовкой
+            technicalContainer.innerHTML = "";
+
+            // Отрисовываем график
+            renderTechnicalChart('technical-chart-container', technicalData);
+
+        } catch (error) {
+            console.error("Ошибка при загрузке или отрисовке technical индикаторов:", error.message);
+            technicalContainer.innerText = `Ошибка: ${error.message}`;
+        }
+    }
+
     // Создаем кнопки для изменения разрешения
     const buttonContainer = document.createElement('div');
     buttonContainer.style.marginBottom = "10px";
@@ -129,10 +237,17 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Загружаем начальный график с разрешением '1d'
     loadAndRenderChart(requestParams.resolution);
-
     // Загружаем и отрисовываем стакан ордеров
     loadAndRenderOrderBook();
+    // Загружаем и отрисовываем индикаторные графики
+    loadAndRenderSentiment();
+    loadAndRenderVolatility();
+    loadAndRenderTechnical();
 
     // Опционально: обновляем стакан каждые 5 секунд
     setInterval(loadAndRenderOrderBook, 5000);
+    // Опционально: обновляем индикаторы каждые 30 секунд
+    setInterval(loadAndRenderSentiment, 30000);
+    setInterval(loadAndRenderVolatility, 30000);
+    setInterval(loadAndRenderTechnical, 30000);
 });

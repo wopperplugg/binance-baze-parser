@@ -6,3 +6,6 @@ channels
 dotenv
 asgiref
 pandas
+celery
+redis
+django-celery-beat
