@@ -1,5 +1,6 @@
 import { fetchKlinesData, fetchOrderBookData } from "./apiService";
-import { renderD3KlineChart, renderOrderBook } from "./chart";
+import { renderD3KlineChart } from "./kline-chart";
+import { renderOrderBook } from "./order-book";
 
 document.addEventListener('DOMContentLoaded', async () => {
     // Получение конфигурации
@@ -104,11 +105,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         const button = document.createElement('button');
         button.textContent = resolution;
         button.style.padding = "5px 10px";
-        button.style.border = "1px solid #ccc";
+        button.style.margin = "5px 2px";
         button.style.cursor = "pointer";
 
         // Добавляем класс для стилизации
-        button.classList.add("resolution-button");
+        button.classList.add("btn");
+        button.classList.add("btn-outline-success");
 
         // Обработчик события
         button.addEventListener('click', () => {

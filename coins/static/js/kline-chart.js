@@ -117,17 +117,27 @@ export function renderD3KlineChart(containerId, rawData) {
             .attr("fill", d => d.open > d.close ? "red" : "green");
     }
 
-    // Tooltip setup
-    const tooltip = d3.select("body")
-        .append("div")
-        .attr("id", "tooltip")
-        .style("position", "absolute")
-        .style("background", "white")
-        .style("padding", "5px")
-        .style("border", "1px solid #ccc")
-        .style("pointer-events", "none")
-        .style("opacity", 0)
-        .style("font-family", "Arial, sans-serif");
+    // Создаем элемент для отображения информации над графиком
+    const infoBox = svg.append("g")
+        .attr("id", "info-box")
+        .attr("transform", "translate(0, -25)")
+        .attr("class", "info-box");
+
+    // Добавляем прямоугольник фона
+    infoBox.append("rect")
+        .attr("width", innerWidth)
+        .attr("height", 25)
+        .attr("fill", "rgba(255, 255, 255, 0.9)")
+        .attr("stroke", "#ffffffff")
+        .attr("stroke-width", "1");
+
+    // Добавляем текстовый элемент для отображения информации
+    const infoText = infoBox.append("text")
+        .attr("x", 8)
+        .attr("y", 17)
+        .attr("font-family", "Arial, sans-serif")
+        .attr("font-size", "12px")
+        .attr("fill", "#495057");
 
     // Zoom functionality setup
     const zoom = d3.zoom()
@@ -153,12 +163,16 @@ export function renderD3KlineChart(containerId, rawData) {
 
         // Перерисовываем свечи с новыми масштабами/сдвигами
         drawCandles(updatedXScale);
+
+        // Обновляем размер информационной панели при зуме
+        svg.select("#info-box").select("rect")
+            .attr("width", width - margin.left - margin.right);
     }
 
     // Первичная отрисовка свечей
     drawCandles(xScale);
 
-    // Добавляем динамическое событие для тултипа
+    // Добавляем динамическое событие для отображения информации над графиком
     chartBody.on("mousemove", function (event) {
         const [mouseX] = d3.pointer(event);
 
@@ -171,25 +185,17 @@ export function renderD3KlineChart(containerId, rawData) {
         const d = x0 - d0.date > d1.date - x0 ? d1 : d0;
 
         if (d) {
-            // Показываем тултип
-            tooltip.style("opacity", 1)
-                .html(`
-                    <strong>Дата:</strong> ${d.date.toLocaleString()}<br/>
-                    <strong>Открытие:</strong> ${d.open.toFixed(2)}<br/>
-                    <strong>Максимум:</strong> ${d.high.toFixed(2)}<br/>
-                    <strong>Минимум:</strong> ${d.low.toFixed(2)}<br/>
-                    <strong>Закрытие:</strong> ${d.close.toFixed(2)}
-                `)
-                .style("left", (event.pageX + 10) + "px")
-                .style("top", (event.pageY - 28) + "px");
+            // Обновляем текст в информационной панели
+            infoText.text(`Дата: ${d.date.toLocaleString()} | Откр: ${d.open.toFixed(2)} | Макс: ${d.high.toFixed(2)} | Мин: ${d.low.toFixed(2)} | Закр: ${d.close.toFixed(2)}`);
         } else {
-            tooltip.style("opacity", 0);
+            // Очищаем текст, если курсор не над данными
+            infoText.text("");
         }
     });
 
-    // Скрываем тултип при выходе за пределы графика
+    // Очищаем текст при выходе за пределы графика
     chartBody.on("mouseleave", function () {
-        tooltip.style("opacity", 0);
+        infoText.text("");
     });
 
     // Обновление графика при изменении размера окна
@@ -217,6 +223,14 @@ export function renderD3KlineChart(containerId, rawData) {
             .attr("width", innerWidth)
             .attr("height", innerHeight);
 
+        // Обновляем размер информационной панели
+        svg.select("#info-box").select("rect")
+            .attr("width", innerWidth);
+
+        // Обновляем позицию всей информационной панели
+        svg.select("#info-box")
+            .attr("transform", "translate(0, -25)");
+
         // Перерисовываем свечи
         barWidth = calculateBarWidth(xScale);
         drawCandles(xScale);
@@ -227,99 +241,4 @@ export function renderD3KlineChart(containerId, rawData) {
 
     // Первая отрисовка
     updateChartSize();
-}
-
-export function renderOrderBook(containerId, orderBookData) {
-    const container = document.getElementById(containerId);
-    if (!container) {
-        console.error(`Контейнер с ID '${containerId}' не найден.`);
-        return;
-    }
-
-    // Проверяем структуру данных
-    if (!orderBookData || !Array.isArray(orderBookData.bids) || !Array.isArray(orderBookData.asks)) {
-        container.innerHTML = '<p class="text-muted text-center">Некорректные данные стакана.</p>';
-        return;
-    }
-
-    // Преобразуем строки в числа для удобства
-    const bids = orderBookData.bids.map(([price, amount]) => [Number(price), Number(amount)]);
-    const asks = orderBookData.asks.map(([price, amount]) => [Number(price), Number(amount)]);
-
-    // Очищаем контейнер
-    container.innerHTML = '';
-
-    // Создаем обертку
-    const wrapper = document.createElement('div');
-    wrapper.classList.add('order-book-container-wrapper');
-
-    // Заголовок
-    const header = document.createElement('div');
-    header.classList.add('order-book-header', 'd-flex', 'justify-content-between', 'fw-bold', 'pb-1', 'border-bottom');
-    header.innerHTML = `
-        <span>Цена</span>
-        <span>Объем</span>
-        <span>Всего</span>
-    `;
-    wrapper.appendChild(header);
-
-    // Отрисовка ask (продажи) - отсортированы по возрастанию цены
-    const asksContainer = document.createElement('div');
-    asksContainer.classList.add('order-book-asks');
-
-    // Проверяем, что asks — массив, и реверсируем его для отображения сверху вниз
-    if (Array.isArray(asks)) {
-        asks.slice().reverse().forEach(([price, amount]) => {
-            const row = document.createElement('div');
-            row.classList.add('order-book-row', 'd-flex', 'justify-content-between', 'py-1', 'text-danger');
-            row.innerHTML = `
-                <span>${price.toFixed(2)}</span>
-                <span>${amount.toFixed(6)}</span>
-                <span>${(price * amount).toFixed(2)}</span>
-            `;
-            asksContainer.appendChild(row);
-        });
-    } else {
-        asksContainer.innerHTML = '<div class="text-muted p-2">Нет данных продаж</div>';
-    }
-
-    wrapper.appendChild(asksContainer);
-
-    // Средняя цена (spread)
-    const spreadContainer = document.createElement('div');
-    spreadContainer.classList.add('spread', 'text-center', 'my-2', 'text-muted', 'fst-italic');
-    if (bids.length > 0 && asks.length > 0) {
-        const bestBid = bids[0][0];
-        const bestAsk = asks[0][0];
-        const midPrice = ((bestBid + bestAsk) / 2).toFixed(2);
-        const spreadPercent = (((bestAsk - bestBid) / bestBid) * 100).toFixed(2);
-        spreadContainer.textContent = `Средняя цена: ${midPrice} (Spread: ${spreadPercent}%)`;
-    } else {
-        spreadContainer.textContent = 'Нет данных для расчета средней цены';
-    }
-    wrapper.appendChild(spreadContainer);
-
-    // Отрисовка bid (покупки) - отсортированы по убыванию цены
-    const bidsContainer = document.createElement('div');
-    bidsContainer.classList.add('order-book-bids');
-
-    if (Array.isArray(bids)) {
-        bids.forEach(([price, amount]) => {
-            const row = document.createElement('div');
-            row.classList.add('order-book-row', 'd-flex', 'justify-content-between', 'py-1', 'text-success');
-            row.innerHTML = `
-                <span>${price.toFixed(2)}</span>
-                <span>${amount.toFixed(6)}</span>
-                <span>${(price * amount).toFixed(2)}</span>
-            `;
-            bidsContainer.appendChild(row);
-        });
-    } else {
-        bidsContainer.innerHTML = '<div class="text-muted p-2">Нет данных покупок</div>';
-    }
-
-    wrapper.appendChild(bidsContainer);
-
-    // Добавляем обертку в контейнер
-    container.appendChild(wrapper);
 }

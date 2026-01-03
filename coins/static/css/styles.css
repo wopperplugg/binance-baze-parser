@@ -99,6 +99,16 @@
     text-align: center;
 }
 
+.info-box {
+    font-family: 'Arial', sans-serif;
+    font-size: 12px;
+}
+
+.info-box text {
+    dominant-baseline: middle;
+    text-anchor: start;
+}
+
 /* Для адаптивности */
 @media (max-width: 768px) {
     .btn-group .btn {
