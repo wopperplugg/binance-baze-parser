@@ -13,7 +13,7 @@ app.autodiscover_tasks()
 app.conf.beat_schedule = {
     "calculate-indicators-every-minute": {
         "task": "coins.tasks.calculate_indicators_task",
-        "schedule": 60.0,
+        "schedule": 5.0,
     },
 }
 
